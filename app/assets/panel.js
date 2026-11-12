@@ -1,9 +1,9 @@
-// 三国杀手机助手 v2.9.5 Beta —— 控制面板（七页）
+// 三国杀手机助手 v2.9.6 Beta —— 控制面板（七页）
 // 载入并适配原版「三国杀打小抄一将成名」脚本，不修改其核心逻辑。
 (() => {
   'use strict';
 
-  const VERSION = '2.9.5 Beta';
+  const VERSION = '2.9.6 Beta';
   if (window.__JND_MOBILE__ === VERSION) return;
   window.__JND_MOBILE__ = VERSION;
 
@@ -1788,7 +1788,7 @@
 
     const daiFrom = daiLocalVer();
     const appFrom = (() => {
-      // 清单里写的是 2.9.5-beta，展示时统一成 2.9.5 Beta
+      // 清单里的连字符写法（2.9.6-beta）展示时统一成带空格的形式
       const norm = v => String(v).replace(/^v/i, '').trim()
         .replace(/-/g, ' ')
         .replace(/\b(alpha|beta|rc)\b/gi, m => m.charAt(0).toUpperCase() + m.slice(1).toLowerCase());
@@ -2489,13 +2489,51 @@
     if (S.dxcOpen) waitDxc(8000);
     applyView();
 
-    // 点输入框就把键盘抬起来：游戏登录框在顶层或子帧里都可能出现
+    // 点输入框就把键盘抬起来：游戏登录框在顶层或子帧里都可能出现。
+    // 只对文本类输入抬键盘 —— 综合插件的 ON/OFF 开关是 checkbox，
+    // 点它也会 focusin，若照样 ime(true) 就会「切个开关弹键盘」。
+    const TEXTY = { text: 1, search: 1, password: 1, email: 1, number: 1, tel: 1, url: 1 };
     document.addEventListener('focusin', e => {
       const t = e.target;
       if (!t || !t.tagName) return;
       const tag = t.tagName.toUpperCase();
-      if (tag !== 'INPUT' && tag !== 'TEXTAREA') return;
+      if (tag === 'INPUT') {
+        const ty = (t.type || '').toLowerCase();
+        if (!TEXTY[ty]) {
+          // 非文本输入（checkbox/radio/button…）不该持有焦点：点了就甩掉，顺手收键盘
+          try { t.blur(); } catch (_) {}
+          try { if (bridge && bridge.ime) bridge.ime(false); } catch (_) {}
+          return;
+        }
+      } else if (tag !== 'TEXTAREA' && !t.isContentEditable) {
+        return;
+      }
       try { if (bridge && bridge.ime) bridge.ime(true); } catch (_) {}
+    }, true);
+
+    // 反过来：点非输入控件（开关、页签、按钮）时先主动 blur。
+    // 安卓 WebView 按返回键只收起键盘、输入框仍保持焦点，此后任何一次点击
+    // 都会让系统把键盘重新弹出来 —— 表现就是「切个开关也弹键盘」。
+    document.addEventListener('mousedown', e => {
+      const t = e.target;
+      if (!t || !t.tagName) return;
+      const tag = t.tagName.toUpperCase();
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || t.isContentEditable) {
+        // checkbox 等非文本输入：按下去不许抢焦点（click 照常切换，功能不变）
+        if (tag === 'INPUT' && !TEXTY[(t.type || '').toLowerCase()]) {
+          try { e.preventDefault(); } catch (_) {}
+        } else {
+          return;
+        }
+      }
+      const a = document.activeElement;
+      if (!a || a === document.body || !a.tagName) return;
+      const at = a.tagName.toUpperCase();
+      if (at !== 'INPUT' && at !== 'TEXTAREA' && !a.isContentEditable) return;
+      try {
+        a.blur();
+        if (bridge && bridge.ime) bridge.ime(false);
+      } catch (_) {}
     }, true);
     if (S.keepAwake && bridge && bridge.setKeepAwake) { try { bridge.setKeepAwake(true); } catch (_) {} }
     setInterval(tick, 1200);
