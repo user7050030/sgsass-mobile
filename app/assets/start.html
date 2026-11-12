@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>三国杀手机助手</title>
+<style>
+  @font-face{font-family:"DYZ";src:url("https://jinnang.local/__jnd/font") format("woff2");
+    font-display:swap;font-weight:400}
+  :root{
+    --bg:#0d0806;
+    --ink:#f3e3c8;
+    --ink-dim:#9c8a72;
+    --gold:#e3bb7a;
+    --gold-soft:rgba(227,187,122,.14);
+    --line:rgba(227,187,122,.20);
+    --card:rgba(255,244,225,.045);
+    --card-hi:rgba(255,244,225,.085);
+    --red:#8e2318;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"DYZ",-apple-system,"PingFang SC","Noto Sans SC","Source Han Sans SC",sans-serif;
+    overflow-x:hidden;overflow-y:auto;
+    display:flex;flex-direction:column;min-height:100%;
+    padding:calc(env(safe-area-inset-top) + 26px) 18px calc(env(safe-area-inset-bottom) + 20px);
+    -webkit-user-select:none;user-select:none;
+  }
+  /* 背景：两团墨金晕 + 细纹理，不依赖任何图片 */
+  body::before{
+    content:"";position:fixed;inset:-20%;z-index:-2;
+    background:
+      radial-gradient(52% 34% at 50% 0%,rgba(158,44,28,.55),transparent 70%),
+      radial-gradient(46% 30% at 12% 78%,rgba(120,86,32,.22),transparent 72%),
+      radial-gradient(40% 26% at 96% 62%,rgba(140,32,24,.20),transparent 74%),
+      var(--bg);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+    background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px);
+    opacity:.5;
+  }
+
+  /* 顶栏 */
+  .brand{display:flex;align-items:center;gap:14px;margin-top:auto;margin-bottom:26px;animation:rise .5s ease both}
+  .brand img{width:56px;height:56px;border-radius:15px;box-shadow:0 6px 20px rgba(0,0,0,.55),0 0 0 1px rgba(227,187,122,.22) inset}
+  .brand .t{font-size:23px;font-weight:600;letter-spacing:3px;line-height:1.2}
+  .brand .s{font-size:11.5px;color:var(--ink-dim);letter-spacing:1.6px;margin-top:5px}
+
+  /* 段落标题 */
+  .sec{display:flex;align-items:center;gap:10px;margin:0 2px 12px;animation:rise .5s ease both}
+  .sec i{width:3px;height:13px;border-radius:2px;background:linear-gradient(180deg,var(--gold),#8a5a22)}
+  .sec b{font-size:12.5px;font-weight:600;letter-spacing:2px;color:#d9c3a1}
+  .sec s{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent);text-decoration:none}
+  .grid,.sec,.brand,.foot{flex-shrink:0}
+
+  /* 渠道网格 */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:26px}
+  .ch{
+    position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+    padding:15px 6px 13px;border-radius:15px;cursor:pointer;
+    background:linear-gradient(168deg,var(--card),rgba(0,0,0,.14));
+    border:1px solid rgba(255,244,225,.075);
+    transition:transform .16s cubic-bezier(.2,.7,.3,1),background .2s,border-color .2s;
+    animation:rise .45s cubic-bezier(.2,.7,.3,1) both;
+  }
+  .ch:active{transform:scale(.955);background:var(--card-hi);border-color:rgba(227,187,122,.34)}
+  .ch .dot{
+    width:36px;height:36px;border-radius:11px;display:grid;place-items:center;
+    font-size:15px;font-weight:700;line-height:1;letter-spacing:0;
+    color:#fff;background:var(--c,#444);box-shadow:0 3px 10px rgba(0,0,0,.4);
+    text-shadow:0 1px 2px rgba(0,0,0,.35);
+  }
+  .ch .nm{font-size:12px;letter-spacing:.4px;color:#e9dbc5;white-space:nowrap}
+  .ch .tag{position:absolute;top:6px;right:7px;font-size:8.5px;color:var(--gold);opacity:.75;letter-spacing:.5px}
+
+  /* 使用说明 */
+  .tips{margin:18px 2px 0;padding:14px 16px 12px;border-radius:15px;flex-shrink:0;
+    background:linear-gradient(168deg,rgba(255,244,225,.05),rgba(0,0,0,.12));
+    box-shadow:0 0 0 1px rgba(227,187,122,.10) inset;animation:rise .5s .16s ease both}
+  .tips .th{font-size:11.5px;letter-spacing:2px;color:#c9ae82;margin-bottom:9px}
+  .tips .ti{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:#9d8f7d;line-height:1.75;margin-bottom:5px}
+  .tips .ti b{flex:0 0 16px;height:16px;margin-top:3px;border-radius:5px;font-size:10px;
+    display:flex;align-items:center;justify-content:center;font-weight:500;
+    color:#e3bb7a;background:rgba(227,187,122,.13)}
+  .tips .ti span{flex:1}
+
+  /* 底部 */
+  .foot{margin-top:auto;padding-top:20px;text-align:center;color:#6e6153;font-size:10.5px;letter-spacing:1.4px;line-height:1.9;animation:rise .5s .2s ease both}
+  .foot em{font-style:normal;color:#8b7a63}
+
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div class="brand">
+  <img src="__ICON__" alt="">
+  <div>
+    <div class="t">三国杀手机助手</div>
+    <div class="s">三国杀 · 一将成名 · 移动版</div>
+  </div>
+</div>
+
+<div class="sec"><i></i><b>官方与渠道入口</b><s></s></div>
+<div class="grid" id="g-entry"></div>
+
+<div class="sec"><i></i><b>渠道服登录</b><s></s></div>
+<div class="grid" id="g-login"></div>
+
+<div class="tips">
+  <div class="th">怎么用</div>
+  <div class="ti"><b>1</b><span>点上面任意一张卡片，进入对应渠道的登录站点。</span></div>
+  <div class="ti"><b>2</b><span>「渠道服登录」会直接弹出扫码卡片，用手机上对应的 App 扫一下即可。</span></div>
+  <div class="ti"><b>3</b><span>进入游戏后点右下角的「囊」球，随时查小抄、去红点、整屏截图。</span></div>
+</div>
+
+<div class="foot">
+  <em id="ver">v1.0.0</em> · 仅作登录入口与本地辅助<br>
+  请遵守游戏服务条款，账号风险自负
+</div>
+
+<script>
+// 六个独立入口：各自是完整站点
+var ENTRIES = [
+  { id:'guanfu', label:'官服',   letter:'官', color:'#8e2318', url:'https://web.sanguosha.com/login/x/index' },
+  { id:'4399',   label:'4399',   letter:'4399', color:'#ff6a00', url:'https://my.4399.com/yxsgs/' },
+  { id:'qqgame', label:'QQ 大厅', letter:'Q',  color:'#12b7f5', url:'https://qqgame.qq.com/webappframe/?appid=10951' },
+  { id:'baidu',  label:'百度',   letter:'百', color:'#2932e1', url:'https://wan.baidu.com/gamedetail?gameId=19793616' },
+  { id:'360',    label:'360',    letter:'360', color:'#17b34a', url:'https://sgsszn.wan.360.cn/game_login.php' },
+  { id:'7k7k',   label:'7K7K',   letter:'7K', color:'#ff4d2d', url:'https://h5.7k7k.com/game/960982bec2f555de44ea43ca8a7ef418' }
+];
+// 九个第三方登录方式：在官服登录页触发扫码面板
+var LOGINS = [
+  { id:'qq',      label:'WeGame QQ', letter:'Q',  color:'#12b7f5' },
+  { id:'wx',      label:'WeGame 微信', letter:'微', color:'#07c160' },
+  { id:'bilibili',label:'bilibili',  letter:'b',  color:'#fb7299' },
+  { id:'steam',   label:'Steam',     letter:'S',  color:'#2a475e' },
+  { id:'oppo',    label:'OPPO',      letter:'O',  color:'#0b8f43' },
+  { id:'xiaomi',  label:'小米',      letter:'米', color:'#ff6900' },
+  { id:'vivo',    label:'vivo',      letter:'v',  color:'#415fff' },
+  { id:'huawei',  label:'华为',      letter:'华', color:'#cf0a2c' },
+  { id:'honor',   label:'荣耀',      letter:'荣', color:'#0a59f7' }
+];
+
+function card(item, kind, index, last){
+  var el = document.createElement('div');
+  el.className = 'ch';
+  el.style.animationDelay = (index * 26) + 'ms';
+  el.style.setProperty('--c', item.color);
+  el.innerHTML = '<div class="dot"></div><div class="nm"></div>'
+    + (last === item.id ? '<span class="tag">最近</span>' : '');
+  el.querySelector('.dot').textContent = item.letter;
+  el.querySelector('.nm').textContent = item.label;
+  // 小字渠道名过长时缩字号
+  if (item.label.length > 7) el.querySelector('.nm').style.fontSize = '10.5px';
+  el.addEventListener('click', function(){
+    try { SgsApp.launch(kind, item.id); } catch (e) {
+      document.body.insertAdjacentHTML('beforeend',
+        '<div style="position:fixed;inset:auto 16px 24px;padding:12px;border-radius:12px;background:#400;color:#fff;font-size:13px">启动失败：' + e + '</div>');
+    }
+  });
+  return el;
+}
+
+var last = '';
+try { last = SgsApp.lastChannel() || ''; } catch (e) {}
+
+var ge = document.getElementById('g-entry');
+ENTRIES.forEach(function(it, i){ ge.appendChild(card(it, 'entry', i, last)); });
+var gl = document.getElementById('g-login');
+LOGINS.forEach(function(it, i){ gl.appendChild(card(it, 'login', i + ENTRIES.length, last)); });
+
+try { document.getElementById('ver').textContent = 'v' + SgsApp.version(); } catch (e) {}
+</script>
+</body>
+</html>
